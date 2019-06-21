@@ -6,6 +6,9 @@ from create_jwt import make_headers
 
 ## Setting helpers
 application_id = "8df57daa-57e6-4044-9d3f-33aee3171de8"
+application_secret = "AXov1dtKsZjakaxr0oh3zUiyVsRD3vwfBBgKwTSc3dE"
+user_id = ""
+user_password = ""
 ##
 
 app = Flask(__name__)
