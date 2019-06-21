@@ -4,6 +4,10 @@ import requests
 from authentification import *
 from create_jwt import make_headers
 
+## Setting helpers
+application_id = "8df57daa-57e6-4044-9d3f-33aee3171de8"
+##
+
 app = Flask(__name__)
 
 @app.route('/')
@@ -17,7 +21,7 @@ def index():
 @app.route('/get_data', methods=['GET'])
 def getting_data():
     headers = make_headers(application_id, application_secret, user_id, user_password)
-    response = requests.get("https://api.powerbi.com/v1.0/myorg/datasets/%s/tables" % AppID, headers=headers).json()
+    response = requests.get("https://api.powerbi.com/v1.0/myorg/datasets/", headers=headers).json()
     return response
 
 @app.route('/post_data', methods=['GET','POST'])
