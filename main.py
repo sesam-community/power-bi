@@ -4,8 +4,8 @@ import requests
 from authentification.create_jwt import *
 
 ## Setting helpers
-application_id = "8df57daa-57e6-4044-9d3f-33aee3171de8"
-application_secret = "***REMOVED***"
+client_id = "8df57daa-57e6-4044-9d3f-33aee3171de8"
+client_secret = "***REMOVED***"
 tenant_id = ""
 ##
 
@@ -21,7 +21,7 @@ def index():
 
 @app.route('/get_data', methods=['GET'])
 def getting_data():
-    headers = make_headers(application_id, application_secret, user_id, user_password)
+    headers = get_token(client_id, client_secret, tenant_id)
     response = requests.get("https://api.powerbi.com/v1.0/myorg/datasets/", headers=headers).json()
     return response
 
