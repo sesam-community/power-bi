@@ -2,12 +2,7 @@ from flask import Flask, request, jsonify
 import json
 import requests
 from authentification.create_jwt import *
-
-## Setting helpers
-client_id = "8df57daa-57e6-4044-9d3f-33aee3171de8"
-client_secret = "AXov1dtKsZjakaxr0oh3zUiyVsRD3vwfBBgKwTSc3dE"
-tenant_id = ""
-##
+from auth_helpers import *
 
 app = Flask(__name__)
 
