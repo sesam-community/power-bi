@@ -1,42 +1,105 @@
 import requests
-import adal
+import json
+import datetime
+import urllib.parse
 
-def authenticate_client_key():
+"""
+Base URL where to send token request
+Placeholder contains Azure tenant id
+"""
+TOKEN_URL = "https://login.microsoftonline.com/{}/oauth2/v2.0/token"
+
+"""
+We use client_credentials flow with client_id and secret_id
+Scope https://graph.microsoft.com/.default means app will have all permissions assigned to it 
+in Azure Active Directory ( https://aad.portal.azure.com -> Dashboard -> App Registrations)
+"""
+TOKEN_REQUEST_PAYLOAD = data = {'grant_type': 'client_credentials',
+                                'scope': 'https://graph.microsoft.com/.default'}
+
+"""
+Token cache
+"""
+__token_cache = {}
+
+
+def add_token_to_cache(client_id: str, tenant_id: str, token_obj: dict) -> None:
     """
-    Authenticate using service principal w/ key.
+    Function to add an access token for given client and tenant into token cache
+    :param client_id:i d you get after register new app in Azure AD
+    :param tenant_id: enant id may be found in Azure Admin Center -> Overview -> Properties
+    :param token_obj: Oauth2 token object
+    :return: None
     """
-    authority_host_uri = 'https://login.microsoftonline.com'
-    tenant = '<TENANT>'
-    authority_uri = authority_host_uri + '/' + tenant
-    resource_uri = 'https://management.core.windows.net/'
-    client_id = '<CLIENT_ID>'
-    client_secret = '<CLIENT_SECRET>'
-
-    context = adal.AuthenticationContext(authority_uri, api_version=None)
-    mgmt_token = context.acquire_token_with_client_credentials(resource_uri, client_id, client_secret)
-    credentials = AADTokenCredentials(mgmt_token, client_id)
-
-    return credentials
+    __token_cache[client_id + tenant_id] = token_obj
 
 
-def get_access_token(application_id, application_secret, user_id, user_password, tenant_id):
-    data = {
-        'grant_type': 'password',
-        'scope': 'openid',
-        'resource': "https://analysis.windows.net/powerbi/api",
-        'client_id': application_id,
-        'client_secret': application_secret,
-        'tenant': tenant_id
+def _get_token(client_id, client_secret, tenant_id):
+    """
+    Function for getting Oauth2 token by using clint_credentials grant type
+    :param client_id: id you get after register new app in Azure AD
+    :param client_secret: secret you get after register new app in Azure AD
+    :param tenant_id: tenant id may be found in Azure Admin Center -> Overview -> Properties
+    :return: oauth token object with timestamp added
+    """
+    token_url = TOKEN_URL.format(tenant_id)
+    response = requests.post(token_url, data=data, verify=True, allow_redirects=False,
+                             auth=(client_id, client_secret))
+    response.raise_for_status()
+    token_obj = json.loads(response.text)
+    if not token_obj.get('access_token'):
+        raise Exception("access_token not found in response")
+
+    token_obj['timestamp'] = datetime.datetime.now().timestamp()
+
+    return token_obj
+
+
+def _refresh_token(client_id, client_secret, tenant_id, r_token):
+    """
+    Function to refresh an Ouath2 token with refresh token
+    :param client_id: id you get after register new app in Azure AD
+    :param client_secret:  secret you get after register new app in Azure AD
+    :param tenant_id: tenant id may be found in Azure Admin Center -> Overview -> Properties
+    :param r_token: previously obtained refresh token
+    :return: Oauth2 token object
+    """
+    token_url = TOKEN_URL.format(tenant_id)
+    _data = {
+        'client_id': client_id,
+        'client_secret': client_secret,
+        'scope': 'https://graph.microsoft.com/.default, offline_access',
+        'grant_type': 'refresh_token',
+        'refresh_token': r_token
     }
-    token = requests.post("https://login.microsoftonline.com/common/oauth2/token", data=data)
-    assert token.status_code == 200, "Fail to retrieve token: {}".format(token.text)
-    print("Got access token: ")
-    print(token.json())
-    return token.json()['access_token']
+    response = requests.post(token_url, data=_data, verify=True, allow_redirects=False)
+    response.raise_for_status()
+    token_obj = json.loads(response.text)
+    if not token_obj.get('access_token'):
+        raise Exception("access_token not found in response")
+
+    token_obj['timestamp'] = datetime.datetime.now().timestamp()
+
+    return token_obj
 
 
-def make_headers(application_id, application_secret, user_id, user_password):
-    return {
-        'Content-Type': 'application/json; charset=utf-8',
-        'Authorization': "Bearer {}".format(get_access_token(application_id, application_secret, user_id, user_password))
-    }
+def get_token(client_id, client_secret, tenant_id):
+    """
+    Function to obtain Oauth token. This function search valid token in cache first and request it
+    only when not found or if expired
+    :param client_id: id you get after register new app in Azure AD
+    :param client_secret: secret you get after register new app in Azure AD
+    :param tenant_id: tenant id may be found in Azure Admin Center -> Overview -> Properties
+    :return: oauth token object with timestamp added
+    """
+    token = __token_cache.get(client_id + tenant_id)
+    ts = datetime.datetime.now().timestamp()
+
+    if not token or token['timestamp'] + token['expires_in'] + 5 < ts:
+        if 'refresh_token' in token:
+            r_token = token['refresh_token']
+            __token_cache[client_id + tenant_id] = _refresh_token(client_id, client_secret, tenant_id, r_token)
+        else:
+            __token_cache[client_id + tenant_id] = _get_token(client_id, client_secret, tenant_id)
+
+    return __token_cache.get(client_id + tenant_id)
