@@ -1,8 +1,7 @@
 from flask import Flask, request, jsonify
 import json
 import requests
-from authentification import *
-from create_jwt import make_headers
+from authentification.create_jwt import *
 
 ## Setting helpers
 application_id = "8df57daa-57e6-4044-9d3f-33aee3171de8"
@@ -27,12 +26,13 @@ def getting_data():
     response = requests.get("https://api.powerbi.com/v1.0/myorg/datasets/", headers=headers).json()
     return response
 
-@app.route('/post_data', methods=['GET','POST'])
+@app.route('/post_data', methods=['POST'])
 def posting_data():
     output = {
         'Erik': 'Does something magical!'
     }
-    return jsonify(output)
+    response = requests.post("https://localhost:5000", body=output)
+    return jsonify(response)
 
 if __name__ == '__main__':
     # This is used when running locally. Gunicorn is used to run the
