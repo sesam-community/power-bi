@@ -19,15 +19,14 @@ def authenticate_client_key():
     return credentials
 
 
-def get_access_token(application_id, application_secret, user_id, user_password):
+def get_access_token(application_id, application_secret, user_id, user_password, tenant_id):
     data = {
         'grant_type': 'password',
         'scope': 'openid',
         'resource': "https://analysis.windows.net/powerbi/api",
         'client_id': application_id,
         'client_secret': application_secret,
-        'username': user_id,
-        'password': user_password
+        'tenant': tenant_id
     }
     token = requests.post("https://login.microsoftonline.com/common/oauth2/token", data=data)
     assert token.status_code == 200, "Fail to retrieve token: {}".format(token.text)
