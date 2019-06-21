@@ -4,6 +4,11 @@ import requests
 
 app = Flask(__name__)
 
+## Setting helpers
+AppID = "8df57daa-57e6-4044-9d3f-33aee3171de8"
+AppSecret = "AXov1dtKsZjakaxr0oh3zUiyVsRD3vwfBBgKwTSc3dE"
+##
+
 @app.route('/')
 def index():
     output = {
@@ -13,10 +18,17 @@ def index():
     return jsonify(output)
 
 @app.route('/get_data', methods=['GET'])
-def getting_powerbidata():
-    response = requests.get("https://api.powerbi.com/v1.0/myorg/datasets/cfafbeb1-8037-4d0c-896e-a46fb27ff229")
+def getting_data():
+    response = requests.get("https://api.powerbi.com/v1.0/myorg/datasets/%s" % AppID)
     print(response)
     return jsonify({"Response": "You just got swaggered!"})
+
+@app.route('/post_data', methods=['GET','POST'])
+def posting_data():
+    output = {
+        'Erik': 'Does something magical!'
+    }
+    return jsonify(output)
 
 if __name__ == '__main__':
     # This is used when running locally. Gunicorn is used to run the
