@@ -1,7 +1,7 @@
 from flask import Flask, request, jsonify
 import json
 import requests
-from authentification.create_jwt import *
+from authentification.create_jwt import get_token
 from authentification.auth_helpers import *
 
 app = Flask(__name__)
@@ -16,8 +16,10 @@ def index():
 
 @app.route('/get_data', methods=['GET'])
 def getting_data():
-    headers = get_token(client_id, client_secret, tenant_id)
-    response = requests.get("https://api.powerbi.com/v1.0/myorg/datasets/", headers=headers)
+    token = get_token(client_id, client_secret, tenant_id)
+    headers = {'Authorization': "Bearer {}".format(token['accessToken'])}
+    print("This is the headers: %s" % headers)
+    response = requests.get("https://api.powerbi.com/v1.0/myorg/datasets", headers=headers)
     return jsonify(response)
 
 @app.route('/post_data', methods=['GET','POST'])
