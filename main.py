@@ -1,13 +1,10 @@
 from flask import Flask, request, jsonify
 import json
 import requests
+from authentification import *
+from create_jwt import make_headers
 
 app = Flask(__name__)
-
-## Setting helpers
-AppID = "8df57daa-57e6-4044-9d3f-33aee3171de8"
-AppSecret = "AXov1dtKsZjakaxr0oh3zUiyVsRD3vwfBBgKwTSc3dE"
-##
 
 @app.route('/')
 def index():
@@ -19,9 +16,9 @@ def index():
 
 @app.route('/get_data', methods=['GET'])
 def getting_data():
-    response = requests.get("https://api.powerbi.com/v1.0/myorg/datasets/%s" % AppID)
-    print(response)
-    return jsonify({"Response": "You just got swaggered!"})
+    headers = make_headers(application_id, application_secret, user_id, user_password)
+    response = requests.get("https://api.powerbi.com/v1.0/myorg/datasets/%s/tables" % AppID, headers=headers).json()
+    return response
 
 @app.route('/post_data', methods=['GET','POST'])
 def posting_data():
