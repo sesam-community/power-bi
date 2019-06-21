@@ -26,13 +26,12 @@ def getting_data():
     response = requests.get("https://api.powerbi.com/v1.0/myorg/datasets/", headers=headers).json()
     return response
 
-@app.route('/post_data', methods=['POST'])
+@app.route('/post_data', methods=['GET','POST'])
 def posting_data():
     output = {
         'Erik': 'Does something magical!'
     }
-    response = requests.post("https://localhost:5000", body=output)
-    return jsonify(response)
+    return jsonify(output)
 
 if __name__ == '__main__':
     # This is used when running locally. Gunicorn is used to run the
