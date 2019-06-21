@@ -2,7 +2,7 @@ from flask import Flask, request, jsonify
 import json
 import requests
 from authentification.create_jwt import *
-from auth_helpers import *
+from authentification.auth_helpers import *
 
 app = Flask(__name__)
 
@@ -17,8 +17,8 @@ def index():
 @app.route('/get_data', methods=['GET'])
 def getting_data():
     headers = get_token(client_id, client_secret, tenant_id)
-    response = requests.get("https://api.powerbi.com/v1.0/myorg/datasets/", headers=headers).json()
-    return response
+    response = requests.get("https://api.powerbi.com/v1.0/myorg/datasets/", headers=headers)
+    return jsonify(response)
 
 @app.route('/post_data', methods=['GET','POST'])
 def posting_data():
