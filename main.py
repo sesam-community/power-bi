@@ -20,6 +20,7 @@ def getting_data():
     headers = {'Authorization': "Bearer {}".format(token['accessToken'])}
     print("This is the headers: %s" % headers)
     response = requests.get("https://api.powerbi.com/v1.0/myorg/datasets", headers=headers)
+    print(response)
     return jsonify(response)
 
 @app.route('/post_data', methods=['GET','POST'])
