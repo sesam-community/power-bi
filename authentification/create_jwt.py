@@ -1,7 +1,6 @@
 import requests
 import json
 import datetime
-import urllib.parse
 
 """
 Base URL where to send token request
@@ -23,7 +22,7 @@ Token cache
 __token_cache = {}
 
 
-def add_token_to_cache(client_id: str, tenant_id: str, token_obj: dict) -> None:
+def add_token_to_cache(client_id, tenant_id, token_obj):
     """
     Function to add an access token for given client and tenant into token cache
     :param client_id:i d you get after register new app in Azure AD
@@ -50,7 +49,7 @@ def _get_token(client_id, client_secret, tenant_id):
     if not token_obj.get('access_token'):
         raise Exception("access_token not found in response")
 
-    token_obj['timestamp'] = datetime.datetime.now().timestamp()
+    token_obj['timestamp'] = datetime.now()
 
     return token_obj
 
@@ -78,7 +77,7 @@ def _refresh_token(client_id, client_secret, tenant_id, r_token):
     if not token_obj.get('access_token'):
         raise Exception("access_token not found in response")
 
-    token_obj['timestamp'] = datetime.datetime.now().timestamp()
+    token_obj['timestamp'] = datetime.datetime.now()
 
     return token_obj
 
@@ -93,13 +92,13 @@ def get_token(client_id, client_secret, tenant_id):
     :return: oauth token object with timestamp added
     """
     token = __token_cache.get(client_id + tenant_id)
-    ts = datetime.datetime.now().timestamp()
+    ##ts = datetime.datetime.now()
 
-    if not token or token['timestamp'] + token['expires_in'] + 5 < ts:
-        if 'refresh_token' in token:
-            r_token = token['refresh_token']
-            __token_cache[client_id + tenant_id] = _refresh_token(client_id, client_secret, tenant_id, r_token)
-        else:
-            __token_cache[client_id + tenant_id] = _get_token(client_id, client_secret, tenant_id)
+    ##if not token or token['timestamp'] + token['expires_in'] + 5 < ts:
+    ##    if 'refresh_token' in token:
+    ##        r_token = token['refresh_token']
+    ##        __token_cache[client_id + tenant_id] = _refresh_token(client_id, client_secret, tenant_id, r_token)
+    ##    else:
+    ##        __token_cache[client_id + tenant_id] = _get_token(client_id, client_secret, tenant_id)
 
     return __token_cache.get(client_id + tenant_id)
