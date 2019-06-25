@@ -3,10 +3,7 @@ import json
 import requests
 from authentification.create_jwt import get_token
 from authentification.auth_helpers import *
-import os
 
-jwt = os.environ.get('JWT')
-print(jwt)
 app = Flask(__name__)
 
 @app.route('/')
@@ -51,8 +48,6 @@ def get_sesam_data():
     print(url)
     header = {'Authorization': "Bearer {}".format(jwt_sesam)}
     response = requests.get(url,headers=header)
-
-
     return jsonify(response.json())
 
 
