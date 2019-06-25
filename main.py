@@ -3,6 +3,7 @@ import json
 import requests
 from authentification.create_jwt import get_token
 from authentification.auth_helpers import *
+from sesam.getting_sesam_data import get_sesam_data
 
 app = Flask(__name__)
 
@@ -31,25 +32,14 @@ def posting_data():
        'Username': u'Unjudosely',
        'Orders': u'Thinkpad',
        'TotalSum': 8000
-   }
+    }
     token = get_token(client_id, client_secret, tenant_id)
     headers = {'Authorization': "Bearer {}".format(token['accessToken'])}
     response = requests.post("https://api.powerbi.com/v1.0/myorg/datasets", headers=headers, data=sesam_data)
-
-    print(response.status_code)
-    print(response.reason)
-    return jsonify(sesam_data)
-
-
-@app.route('/get_sesam_data', methods=['GET'])  
-def get_sesam_data():
-    start_endpoint = 'datahub-0b08b50b'
-    url = 'https://' + start_endpoint + '.sesam.cloud/api/pipes/crm-person'
-    print(url)
-    header = {'Authorization': "Bearer {}".format(jwt_sesam)}
-    response = requests.get(url,headers=header)
-    return jsonify(response.json())
-
+    pipe_data = get_sesam_data(sesam_jwt)
+    #print(response.status_code)
+    #print(response.reason)
+    return jsonify(pipe_data.json())
 
 if __name__ == '__main__':
     # This is used when running locally. Gunicorn is used to run the
