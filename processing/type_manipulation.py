@@ -1,5 +1,6 @@
-#ex:
-def manipulate_string(sesam_string):
+import numpy as np
 
-
-        return pbi_string
+#def manipulate_string(sesam_string):
+#
+#
+#        return pbi_string
