@@ -4,3 +4,4 @@ adal
 nose
 tornado
 six
+numpy
