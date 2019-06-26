@@ -1,6 +1,5 @@
 import json
 from six import iteritems
-import numpy as np
 
 def nested_lookup(key, document):
     """Lookup a key in a nested document, return a list of values"""
@@ -39,6 +38,8 @@ def strip_json(data, key):
         A dictionary with the specified key and its 
         corresponding values only
     """
+
+
     try:
         data = nested_lookup(key, data)[0]
     except IndexError:
@@ -56,6 +57,8 @@ def setup_powerBi_json(pipe_data):
     Returns: 
         A new dictionary for Power BI use
     """
+
+
     new_dict = {}
     new_dict['name'] = pipe_data['_id']                                                                 # assume same name as the pipe
     new_dict['tables'] = {}
@@ -75,6 +78,7 @@ def make_new_json(new_dict, data):
     Returns:
         A dictionary with the Sesam data attached in Power BI format
     """
+
 
     num_rows = len(data)
     num_cols = len(data[0].keys())
@@ -103,6 +107,7 @@ def find_dataType(key, value):
         A string for dataType specification 
     """
     
+
     key = key.lower()
     if key == 'ssn':
         return 'String'
@@ -145,6 +150,8 @@ def make_PowerBi_json(powerBi_json):
     Returns:
         The Sesam data in powerBi format 
     """
+    
+
     new_dict = setup_powerBi_json(powerBi_json)
         
     try:
@@ -158,6 +165,4 @@ def make_PowerBi_json(powerBi_json):
         powerBi_json = powerBi_json
 
     powerBi_json = make_new_json(new_dict, powerBi_json)
-
-
     return powerBi_json
