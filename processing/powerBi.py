@@ -141,6 +141,9 @@ def make_PowerBi_json(powerBi_json):
 
     Parameters:
         powerBi_json
+    
+    Returns:
+        The Sesam data in powerBi format 
     """
     new_dict = setup_powerBi_json(powerBi_json)
         
