@@ -4,7 +4,7 @@ import requests
 from authentification.create_jwt import get_token
 from authentification.auth_helpers import *
 from sesam.getting_sesam_data import get_sesam_data
-from processing.format_json import *
+from processing.powerBi import *
 
 app = Flask(__name__)
 
@@ -37,15 +37,11 @@ def posting_data():
     token = get_token(client_id, client_secret, tenant_id)
     headers = {'Authorization': "Bearer {}".format(token['accessToken'])}
     response = requests.post("https://api.powerbi.com/v1.0/myorg/datasets", headers=headers, data=sesam_data)
+    
+    
     pipe_data = get_sesam_data(sesam_jwt, start_endpoint).json()
+    powerBi_json = make_PowerBi_json(pipe_data)
     #return jsonify(pipe_data)
-    new_dict = setup_powerBi_json(pipe_data)
-
-    try:
-        powerBi_json = strip_json(pipe_data, 'effectives')
-    except SyntaxError:
-        powerBi_json = pipe_data
-    powerBi_json = powerBi_json_format(new_dict, powerBi_json)
     return jsonify(powerBi_json)
 
 if __name__ == '__main__':
