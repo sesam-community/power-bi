@@ -29,22 +29,41 @@ def getting_data():
 @app.route('/post_data', methods=['GET','POST'])
 def posting_data():
     
-    sesam_data =   {
-       'id': 1,
-       'Username': u'Unjudosely',
-       'Orders': u'Thinkpad',
-       'TotalSum': 8000
+    test_data =   {
+    "rows": [
+    {
+      "ProductID": 1,
+      "Name": "Adjustable Race",
+      "Category": "Components",
+      "IsCompete": 'true',
+      "ManufacturedOn": "07/30/2014"
+    },
+    {
+      "ProductID": 2,
+      "Name": "LL Crankarm",
+      "Category": "Components",
+      "IsCompete": 'true',
+      "ManufacturedOn": "07/30/2014"
+    },
+    {
+      "ProductID": 3,
+      "Name": "HL Mountain Frame - Silver",
+      "Category": "Bikes",
+      "IsCompete": 'true',
+      "ManufacturedOn": "07/30/2014"
+    }
+    ]
     }
     token = get_token(client_id, client_secret, tenant_id)
     headers = {'Authorization': "Bearer {}".format(token['accessToken'])}
-    response = requests.post("https://api.powerbi.com/v1.0/myorg/datasets", headers=headers, data=sesam_data)
+    response = requests.post("https://api.powerbi.com/v1.0/myorg/datasets", headers=headers, data=test_data)
     print(response.status_code)
     print(response.reason)
     
     pipe_data = get_sesam_data(sesam_jwt, start_endpoint).json()
     powerBi_json = make_PowerBi_json(pipe_data)
     #return jsonify(pipe_data)
-    return jsonify(response.json())
+    return jsonify(powerBi_json)
 
 if __name__ == '__main__':
     # This is used when running locally. Gunicorn is used to run the

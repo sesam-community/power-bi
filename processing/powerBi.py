@@ -60,9 +60,9 @@ def setup_powerBi_json(pipe_data):
 
 
     new_dict = {}
-    new_dict['name'] = pipe_data['_id']                                                                 # assume same name as the pipe
+    new_dict['name'] = pipe_data['_id']
     new_dict['tables'] = {}
-    new_dict['tables']['name'] = pipe_data['_id']                                                       # assume same name as the pipe
+    new_dict['tables']['name'] = pipe_data['_id'] 
     new_dict['tables']['columns'] = []
     return new_dict
 
@@ -121,9 +121,8 @@ def find_dataType(key, value):
     if len(value.split()) != 1:
         return 'String'
 
-    if value == 'True' or value == 'False':
+    if value.lower() == 'true' or value.lower() == 'false':
         return 'Boolean'
-
     try:
         eval(value)
     except NameError:
