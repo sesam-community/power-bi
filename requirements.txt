@@ -3,5 +3,4 @@ requests
 adal
 nose
 tornado
-six
-numpy
+six|
