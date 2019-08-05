@@ -21,7 +21,7 @@ def index():
 def getting_data():
     token = get_token(client_id, tenant_id, refresh_token)
     headers = {'Authorization': "Bearer {}".format(token['accessToken'])}
-    response = requests.get("https://api.powerbi.com/v1.0/myorg/datasets", headers=headers)
+    response = requests.get(url_dataset, headers=headers)
     Sesam_data  = get_sesam_data(sesam_jwt, start_endpoint, pipe_name).json()
     return jsonify(Sesam_data)
 
@@ -31,27 +31,36 @@ def posting_data():
     token       = get_token(client_id, tenant_id,refresh_token)
     headers     = {'Authorization': "Bearer {}".format(token['accessToken'])}
     
+    # Fetching the Sesam data
     Sesam_data  = get_sesam_data(sesam_jwt, start_endpoint, pipe_name).json()
-    new_table_name = Sesam_data['_id']
+
+    # Setting up the Power BI table in the correct format
     table       = setup_table(Sesam_data)
+
+    # Stripping away the unnecessary Sesam data
     Sesam_data  = strip_Sesam_data(Sesam_data)
       
-    current_datasets  = requests.get(url_dataset, headers=headers)    
+    # Populating the columns (properties)
     populated_table   = add_columns(table, Sesam_data, headers)
-    dataset_exists, dataset_id = check_dataset(current_datasets.json(), populated_table['name'])
 
-    # If a dataset already exists, it gets deleted and replaced by the new one
+    
+    # If the dataset from Sesam already exists in Power BI, 
+    # the Power BI dataset gets deleted and replaced by the new one
+    current_datasets  = requests.get(url_dataset, headers=headers)
+    dataset_exists, dataset_id = check_dataset(current_datasets.json(), populated_table['name'])
     if dataset_exists:
       requests.delete(url_dataset + "/" + dataset_id, headers=headers)
-    requests.post(url_dataset, headers=headers, json=populated_table)
-
-    response = requests.get(url_dataset, headers=headers)
-    dataset_exists, dataset_id = check_dataset(response.json(), populated_table['name'])
-
+    
+    # Adding table with columns in Power BI
+    response = requests.post(url_dataset, headers=headers, json=populated_table)
+    dataset_id = response.json()['id']
+    
     #Populating the rows (entities)
     rows = add_rows(Sesam_data)
     
-    response = requests.post(url_dataset + "/%s/tables/%s/rows" % (dataset_id, new_table_name), headers=headers, json=rows)
+    # Adding rows to table in Power BI
+    response = requests.post(url_dataset + "/%s/tables/%s/rows" % (dataset_id, populated_table['name']), headers=headers, json=rows)
+
     response = requests.get(url_dataset + "/%s/tables" % dataset_id, headers=headers)
 
     return jsonify(response.json())
