@@ -1,5 +1,7 @@
 import json
 from six import iteritems
+import requests
+
 
 def nested_lookup(key, document):
     """Lookup a key in a nested document, return a list of values"""
@@ -46,7 +48,7 @@ def strip_json(data, key):
         return data
     return data
 
-def setup_powerBi_json(pipe_data):
+def setup_table(Sesam_data):
     """ 
     Creates a new dictionary with the standard Power BI setup
     with one dataset and one table 
@@ -58,42 +60,87 @@ def setup_powerBi_json(pipe_data):
         A new dictionary for Power BI use
     """
 
+    new_table = {}
+    new_table['name'] = Sesam_data['_id']
+    new_table["defaultMode"] = "Push"
+    new_table['tables'] = []
+    new_table['tables'].append({})
+    new_table['tables'][0]['name'] = Sesam_data['_id'] 
+    new_table['tables'][0]['columns'] = []
+    return new_table
 
-    new_dict = {}
-    new_dict['name'] = pipe_data['_id']
-    new_dict['tables'] = {}
-    new_dict['tables']['name'] = pipe_data['_id'] 
-    new_dict['tables']['columns'] = []
-    return new_dict
 
-def make_new_json(new_dict, data):
+def check_dataset(current_datasets, new_dataset_name):
+    """
+    Checks if the new dataset already exists in Power BI.
+    
+    Parameters:
+        current_dataset: The existing datasets in Power BI
+        new_dataset_name: The new dataset name
+    Returns:
+        True and the id of the dataset if the dataset already exists
+        False and None if the dataset does not exist
+    """
+
+    try: 
+        current_datasets['value']
+    except KeyError:
+        if current_datasets['name'] == new_dataset_name:
+            return True, current_datasets['id']
+        else:
+            print(1)
+            return False, None
+
+    if len(current_datasets['value']) == 0:
+        print(2)
+        print(current_datasets)
+
+        return False, None
+    
+    for existing_dataset in current_datasets['value']:
+        if existing_dataset['name'] == new_dataset_name:
+            return True, existing_dataset['id']
+        else:
+            print(3)
+
+            return False, None
+
+def add_columns(new_dict, Sesam_data, headers):
     """
     Fills in the columns in the disctionary from setup_powerBi_json
     with Sesam entities as rows, and values as columns 
 
     Parameters:
         new_dict: The dictionary created in setup_powerBi_json
-        data:     The data from Sesam
+        Sesam_data:     The data from Sesam
 
     Returns:
         A dictionary with the Sesam data attached in Power BI format
     """
 
 
-    num_rows = len(data)
-    num_cols = len(data[0].keys())
-    col_keys = list(data[0].keys())
+    num_cols = len(Sesam_data[0].keys())
+    col_keys = list(Sesam_data[0].keys())
     # TODO check if all entities has same amount of keys
 
     for col in range(num_cols):
-        new_dict['tables']['columns'].append({})                                                       
-        new_dict['tables']['columns'][col]['name'] = col_keys[col]                                      
-        
-        for row in range(num_rows):         
-            new_dict['tables']['columns'][col][data[row]['_id']] = data[row][col_keys[col]]
+        new_dict['tables'][0]['columns'].append({})                                                       
+        new_dict['tables'][0]['columns'][col]['name'] = col_keys[col]                                      
 
-        new_dict['tables']['columns'][col]['dataType'] = find_dataType(col_keys[col], data[row][col_keys[col]])
+        new_dict['tables'][0]['columns'][col]['dataType'] = find_dataType(col_keys[col], Sesam_data[0][col_keys[col]])
+
     return new_dict
+
+def add_rows(Sesam_data):
+    rows = {}
+    rows["rows"] = []
+    num_cols = len(Sesam_data)
+    for i in range(len(Sesam_data)):
+        rows["rows"].append({})
+        for j, key in enumerate(Sesam_data[i].keys()):
+            rows["rows"][i][key] = Sesam_data[i][key]
+        
+    return rows
 
 def find_dataType(key, value):
     """
@@ -110,7 +157,7 @@ def find_dataType(key, value):
 
     key = key.lower()
     if key == 'ssn':
-        return 'String'
+        return 'Int64'
         
     if key == 'datetime':
         return 'dateTime' 
@@ -139,29 +186,26 @@ def find_dataType(key, value):
 
     return 'Datetime'
 
-def make_PowerBi_json(powerBi_json):
+
+def strip_Sesam_data(Sesam_data):
     """
-    Function that calls all the other methods in the powerBI-script
+    Function that strips the initial data of unnecessary information
 
     Parameters:
         powerBi_json
     
     Returns:
-        The Sesam data in powerBi format 
+        The stripped Sesam data
     """
     
-
-    new_dict = setup_powerBi_json(powerBi_json)
-        
     try:
-        powerBi_json = strip_json(powerBi_json, 'effectives')
+        Sesam_data = strip_json(Sesam_data, 'effectives')
     except SyntaxError:
-        powerBi_json = powerBi_json
+        Sesam_data = Sesam_data
 
     try:
-        powerBi_json = strip_json(powerBi_json, 'entities')
+        Sesam_data = strip_json(Sesam_data, 'entities')
     except SyntaxError:
-        powerBi_json = powerBi_json
+        Sesam_data = Sesam_data
 
-    powerBi_json = make_new_json(new_dict, powerBi_json)
-    return powerBi_json
+    return Sesam_data
