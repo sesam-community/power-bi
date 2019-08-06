@@ -5,7 +5,7 @@ from authentification.auth_helpers import *
 from processing.powerBi import *
 
 app = Flask(__name__)
-powerbi_url = "https://api.powerbi.com/v1.0/myorg/datasets"
+powerbi_url = "https://api.powerbi.com/v1.0/myorg/groups/07852248-6e81-49b3-b0ac-8c9e9d8c881f/datasets"
 sesam_url   = "https://%s.sesam.cloud/api/pipes/%s" %(start_endpoint, pipe_name)
 
 token           = get_token(client_id, tenant_id,refresh_token)
@@ -24,7 +24,6 @@ def index():
 @app.route('/get_powerbi', methods=['GET'])
 def get_powerbi(dataset_id = str()):
     response    = requests.get(powerbi_url + dataset_id, headers=Powerbi_headers)
-    print(powerbi_url + dataset_id)
     return response
 
 @app.route('/get_sesam', methods=['GET'])
@@ -33,10 +32,10 @@ def get_sesam(entities = str()):
     return response
 
 @app.route('/delete_powerbi', methods=['DELETE'])
-def delete_powerbi(dataset_id):
-    requests.delete(powerbi_url + '/' + dataset_id, headers=Powerbi_headers)
+def delete_powerbi(dataset_id, table_name):
+    requests.delete(powerbi_url + '/' + dataset_id + '/tables/%s/rows' %table_name, headers=Powerbi_headers)
 
-@app.route('/post_data', methods=['POST'])
+@app.route('/post_data', methods=['GET', 'POST'])
 def posting_data():
 
     # Fetching the Sesam data
@@ -51,16 +50,17 @@ def posting_data():
 
     # If the dataset from Sesam already exists in Power BI, 
     # the Power BI dataset gets deleted and replaced by the new one
+    
     current_datasets            = get_powerbi()
     dataset_exists, dataset_id  = check_dataset(current_datasets.json(), populated_table['name'])
     if dataset_exists:
-      delete_powerbi(dataset_id)
-    response        = requests.post(powerbi_url, headers=Powerbi_headers, json=populated_table)
-    dataset_id      = response.json()['id']
+      delete_powerbi(dataset_id, populated_table['name'])
+    
+    #response        = requests.post(powerbi_url, headers=Powerbi_headers, json=populated_table)
+    #dataset_id      = response.json()['id']
     
     #Populating the rows (entities)
     rows            = add_rows(entities)
-    
     # Adding rows to table in Power BI
     requests.post(powerbi_url + "/%s/tables/%s/rows" % (dataset_id, populated_table['name']), headers=Powerbi_headers, json=rows)
 
