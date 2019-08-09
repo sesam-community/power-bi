@@ -4,7 +4,12 @@ import requests
 import sys
 
 
-#tables = [Sesam_data_id, "dates"]
+default_datetime = '1900-01-01'.split()
+default_boolean  = 'False'
+default_decimal  = '0.0'
+default_int      = '0'
+default_string   = 'none'
+
 def setup_dataset(Sesam_data_id):
     """ 
     Creates a new dictionary with the standard Power BI setup
@@ -32,69 +37,35 @@ def setup_dataset(Sesam_data_id):
 
 def find_dataset_id(response, pipe_name):
     for dataset in response.json()['value']:
-        print(dataset)
         if dataset['name'] == pipe_name:
             return dataset['id']
     print("No matching dataset was found")
     sys.exit()
 
-def check_dataset_status(current_datasets, entities, pipe_name, update_rows, update_columns, new_dataset):
+def check_dataset_status(current_datasets, entities, pipe_name):
+    update_rows = update_columns = dataset_id = False
     try:
-      num_keys_new = len(entities[0].keys())
+        num_keys_new = len(entities[0].keys())
     except IndexError:
-      print("There are no entities in the Sesam data")
-      sys.exit()
+        print("There are no entities in the Sesam data")
+        sys.exit()
 
     try:
-      current_datasets.json()['value']
-      for dataset in current_datasets.json()['value']:
-        if dataset['name'] == pipe_name:
-          dataset_id = dataset['id'] 
-          num_keys_old = len(current_datasets.json()['value'][0].keys())
-          if num_keys_old == num_keys_new:
-            update_rows = True
-            break
-          else:
-            update_columns = True
-            break
-      if not update_columns and not update_rows:
+        current_datasets.json()['value']
+        for dataset in current_datasets.json()['value']:
+            if dataset['name'] == pipe_name:
+                dataset_id = dataset['id'] 
+                num_keys_old = len(current_datasets.json()['value'][0].keys())
+                if num_keys_old == num_keys_new:
+                    update_rows = True
+                    break
+                else:
+                    update_columns = True
+                    break
+    except KeyError:
         dataset_id = False
-        new_dataset = True
-    except KeyError:
-      new_dataset = True
-      dataset_id = False
 
-    return update_rows, update_columns, new_dataset, dataset_id
-
-def check_dataset(current_datasets, new_dataset_name):
-    """
-    Checks if the new dataset already exists in Power BI.
-    
-    Parameters:
-        current_dataset: The existing datasets in Power BI
-        new_dataset_name: The new dataset name
-    Returns:
-        True and the id of the dataset if the dataset already exists
-        False and None if the dataset does not exist
-    """
-    
-    try: 
-        current_datasets['value']
-    except KeyError:
-        if current_datasets['name'] == new_dataset_name:
-            return True, current_datasets['id']
-        else:
-            return False, None
-
-    if len(current_datasets['value']) == 0:
-        return False, None
-    
-    for existing_dataset in current_datasets['value']:
-        if existing_dataset['name'] == new_dataset_name:
-            return True, existing_dataset['id']
-        else:
-            return False, None
-
+    return update_rows, update_columns, dataset_id
 
 def add_columns(new_dict, entities, schema):
     """
@@ -122,13 +93,14 @@ def add_columns(new_dict, entities, schema):
 
             except IndexError:
                 dataType = 'String'
-
             new_dict['tables'][i]['columns'].append({})                                                       
             new_dict['tables'][i]['columns'][j]['name'] = keys[j]
             if dataType == 'Datetime':
                 new_dict['tables'][i]['columns'][j]['dataType'] = 'DateTime'
                 new_dict['tables'][i]['columns'][j]['formatString'] = "m/d/yyyy"
                 #new_dict['tables'][0]['columns'][col]['summarizeBy'] = "none"
+            elif dataType == 'Integer':
+                new_dict['tables'][i]['columns'][j]['dataType'] = 'Int64'                
             else:
                 new_dict['tables'][i]['columns'][j]['dataType'] = dataType
     return new_dict, keys
@@ -153,30 +125,52 @@ def add_rows(entities, populated_dataset, keys):
     return rows
 
 def format_value(value, dataType):
+
     if dataType == 'Boolean':
         value = str(value).capitalize()
         if value != 'False' and value != 'True':
-            value = 'False' # default is missing value
+            value = default_boolean # default is missing value
         value = bool(value)
         return value
 
-    if dataType == 'DateTime':
-        print(value)
+    elif dataType == 'DateTime':
         split_value = value.split()
+
         if len(split_value) == 0:
-            return "0000-00-00"
+            split_value = default_datetime
 
-        if split_value[0][0] == '~':
-            return value.split()[0][2:]
+        elif split_value[0][0] == '~':
+            return split_value[0][2:]
+
+        elif len(split_value[0]) == 10:
+            if not '-' in split_value[0][:4]:
+                return split_value[0]
+            else:
+                split_value = default_datetime 
         else:
-            return value
+            split_value = default_datetime 
+        return split_value[0]
 
-    if dataType == 'Decimal':
+    elif dataType == 'Decimal':
         if value == "":
-            return "0.0"
+            return default_decimal
         if str(value).split()[0][0] == '~':
             return str(value).split()[0][2:]
         else:
             return str(value)
+
+    elif dataType == 'Int64':
+        if  len(str(value).split()) == 0:
+            return default_int
+        elif value == None:
+            return default_int
+        else:
+            return value
+    elif dataType == 'String':
+        if len(str(value).split()) == 0:
+            return default_string
+        else:
+            return value
+
     else:
         return str(value)
