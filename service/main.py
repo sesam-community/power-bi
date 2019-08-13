@@ -22,12 +22,9 @@ Powerbi_headers = {'Authorization': "Bearer {}".format(token['accessToken'])}
 powerbi_url     = "https://api.powerbi.com/v1.0/myorg/groups/%s/datasets" % get_env('WORKSPACE-ID')
 workspace_id    = get_env("WORKSPACE-ID")
 
-print(9)
 @app.route('/get_sesam/<node_id>/<pipe_name>', methods=['POST'])
 def get_sesam(node_id, pipe_name):
-
-    print(10)
-    entities = request.get_json()#"https://%s.sesam.cloud/api/pipes/%s/entities" %(node_id, pipe_name), headers=Sesam_headers)
+    entities = request.get_json()
     schema   = requests.get("https://%s.sesam.cloud/api/pipes/%s/generate-schema-definition" %(node_id, pipe_name), headers = Sesam_headers).json()
     dataset                 = setup_dataset(pipe_name)
     populated_dataset, keys = add_columns(dataset, entities, schema)
