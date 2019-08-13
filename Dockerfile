@@ -12,4 +12,4 @@ COPY ./service /service
 
 EXPOSE 5000
 
-CMD ["python3", "./service/main_new.py"]
+CMD ["python3", "./service/main.py"]

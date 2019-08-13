@@ -1,7 +1,6 @@
 from flask import Flask, request, jsonify
 import json
 from authentification.create_jwt import get_token
-#from authentification.auth_helpers import *
 from processing.powerBi import *
 #from authentification.set_config import *
 import sys
@@ -10,17 +9,6 @@ import time
 
 
 app           = Flask(__name__)
-print(11)
-#sesam_jwt = "***REMOVED***"
-#pbi_client_id = "31cb468e-3d61-4246-851f-e8162f8e0a44"
-#tenant_id = "7bcbcc45-fb12-41d3-8ace-fa0fffaebf1d"
-#pbi_refresh_token = "***REMOVED***"
-#token           = get_token(pbi_client_id, tenant_id,pbi_refresh_token)
-    
-#Powerbi_headers = {'Authorization': "Bearer {}".format(token['accessToken'])}
-#Sesam_headers   = {'Authorization': "Bearer {}".format(sesam_jwt)}
-#workspace_id = "07852248-6e81-49b3-b0ac-8c9e9d8c881f"
-#powerbi_url       = "https://api.powerbi.com/v1.0/myorg/groups/%s/datasets" % workspace_id
 
 def get_env(var):
     envvar = None
@@ -34,21 +22,19 @@ Powerbi_headers = {'Authorization': "Bearer {}".format(token['accessToken'])}
 powerbi_url     = "https://api.powerbi.com/v1.0/myorg/groups/%s/datasets" % get_env('WORKSPACE-ID')
 workspace_id    = get_env("WORKSPACE-ID")
 
-
+print(9)
 @app.route('/get_sesam/<node_id>/<pipe_name>', methods=['POST'])
-def pipe(node_id, pipe_name):
+def get_sesam(node_id, pipe_name):
 
+    print(10)
     entities = request.get_json()#"https://%s.sesam.cloud/api/pipes/%s/entities" %(node_id, pipe_name), headers=Sesam_headers)
-    print(2)
     schema   = requests.get("https://%s.sesam.cloud/api/pipes/%s/generate-schema-definition" %(node_id, pipe_name), headers = Sesam_headers).json()
     dataset                 = setup_dataset(pipe_name)
-    print(3)
     populated_dataset, keys = add_columns(dataset, entities, schema)
     rows                    = add_rows(entities, populated_dataset, keys)
 
     # If the dataset from Sesam already exists in Power BI, the Power BI dataset gets updated
     current_datasets                        = get_powerbi(workspace_id)
-    print(4)
     update_rows, update_columns, dataset_id = check_dataset_status(current_datasets, entities, pipe_name)
 
 
@@ -66,7 +52,6 @@ def pipe(node_id, pipe_name):
 
     # Posting the entities
     post_powerbi_rows(dataset_id, pipe_name, rows)
-    #requests.post(powerbi_url + "/%s/tables/%s/rows" % (dataset_id, pipe_name), headers=Powerbi_headers, json=rows)
     response        = get_powerbi(workspace_id, '/' + dataset_id)
     return jsonify(response.json())
 
