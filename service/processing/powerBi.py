@@ -67,6 +67,7 @@ def check_dataset_status(current_datasets, entities, pipe_name):
 
     return update_rows, update_columns, dataset_id
 
+
 def add_columns(new_dict, entities, schema):
     """
     Fills in the columns in the disctionary from setup_powerBi_json

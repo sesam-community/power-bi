@@ -1,6 +1,6 @@
 flask
 requests
-adal
+adal==1.2.2
 nose
-tornado
-six|
+six
+click
