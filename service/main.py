@@ -2,11 +2,7 @@ from flask import Flask, request, jsonify
 import json
 from authentification.create_jwt import get_token
 from processing.powerBi import *
-#from authentification.set_config import *
-import sys
 import os
-import time
-
 
 app           = Flask(__name__)
 
@@ -33,12 +29,12 @@ powerbi_url     = "https://api.powerbi.com/v1.0/myorg/groups/%s/datasets" % get_
 workspace_id    = get_env("WORKSPACE-ID")
 
 @app.route('/get_sesam/<node_id>/<pipe_name>', methods=['POST'])
-def get_sesam(node_id, pipe_name):
+def main_func(node_id, pipe_name):
     entities = request.get_json()
     args = request.args
     schema   = requests.get("https://%s.sesam.cloud/api/pipes/%s/generate-schema-definition" %(node_id, pipe_name), headers = Sesam_headers).json()
     dataset                 = setup_dataset(pipe_name)
-    populated_dataset, keys = add_columns(dataset, entities, schema)
+    populated_dataset, keys = add_columns(dataset, schema)
     rows                    = add_rows(entities, populated_dataset, keys)
 
     # If the dataset from Sesam already exists in Power BI, the Power BI dataset gets updated
@@ -56,7 +52,7 @@ def get_sesam(node_id, pipe_name):
             delete_powerbi_rows(dataset_id, pipe_name)
 
         post_powerbi_rows(dataset_id, pipe_name, rows)
-        
+
     except KeyError:
         post_powerbi_rows(dataset_id, pipe_name, rows)
 
@@ -74,7 +70,7 @@ def post_powerbi_rows(dataset_id, pipe_name, data):
     requests.post(powerbi_url + "/%s/tables/%s/rows" % (dataset_id, pipe_name), headers=Powerbi_headers, json=data)
 
 @app.route('/create_powerbi_dataset', methods=['PUT'])
-def create_powerbi_dataset(dataset_id, data):
+def create_powerbi_dataset(data):
     requests.post("https://api.powerbi.com/v1.0/myorg/groups/%s/datasets" % (workspace_id),  headers=Powerbi_headers, json=data)
 
 @app.route('/get_powerbi', methods=['GET'])
@@ -83,7 +79,6 @@ def get_powerbi(workspace_id, dataset_id = str()):
     return response
 
 if __name__ == '__main__':
-
 
     # This is used when running locally. Gunicorn is used to run the
     # application on Google App Engine. See entrypoint in app.yaml.
