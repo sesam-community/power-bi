@@ -3,14 +3,13 @@ from six import iteritems
 import requests
 import sys
 
-
 default_datetime = '1900-01-01'.split()
 default_boolean  = 'False'
 default_decimal  = '0.0'
 default_int      = '0'
 default_string   = 'none'
 
-def setup_dataset(Sesam_data_id):
+def setup_dataset(pipe_name):
     """ 
     Creates a new dictionary with the standard Power BI setup
     with one dataset and one table 
@@ -22,9 +21,9 @@ def setup_dataset(Sesam_data_id):
         A new dictionary for Power BI use
     """
 
-    tables = [Sesam_data_id]
+    tables = [pipe_name]
     new_dataset                = {}
-    new_dataset['name']        = Sesam_data_id
+    new_dataset['name']        = pipe_name
     new_dataset["defaultMode"] = "Push"
     new_dataset['tables']      = []
 
@@ -36,26 +35,40 @@ def setup_dataset(Sesam_data_id):
     return new_dataset
 
 def find_dataset_id(response, pipe_name):
+    """
+    Finds the Power BI dataset_id of a dataset (several datasets can have the same name but different ids)
+
+    Paramaters:
+        response : The request.get value from the Power BI endpoint ../datasets
+        pipe_name: The name of the dataset to be pushed into Power BI (and the name of the Sesam pipe)
+
+    Returns: 
+        The dataset_id 
+    """
+
     for dataset in response.json()['value']:
         if dataset['name'] == pipe_name:
             return dataset['id']
     print("No matching dataset was found")
     sys.exit()
 
-def check_dataset_status(current_datasets, entities, pipe_name):
+def check_dataset_status(current_datasets, num_keys_new, pipe_name):
     update_rows = update_columns = dataset_id = False
-    try:
-        num_keys_new = len(entities[0].keys())
-    except IndexError:
-        print("There are no entities in the Sesam data")
-        sys.exit()
-
     try:
         current_datasets.json()['value']
         for dataset in current_datasets.json()['value']:
             if dataset['name'] == pipe_name:
-                dataset_id = dataset['id'] 
+                dataset_id = dataset['id']
+                num_keys_old = 0
+                #for dataset_ in current_datasets.json()['value']:
+                #    if dataset_['addRowsAPIEnabled']:
+                #        num_keys_old += 1
+                print(dataset)
+                print(current_datasets.json())
+                ss
                 num_keys_old = len(current_datasets.json()['value'][0].keys())
+                print(num_keys_old)
+                print(num_keys_new)
                 if num_keys_old == num_keys_new:
                     update_rows = True
                     break
@@ -83,7 +96,8 @@ def add_columns(new_dict, entities, schema):
 
     num_tables = len(new_dict['tables'])
     num_columns = len(schema)
-
+    #keys = schema[0]
+    #key = keys['name']
     keys = [data['name'] for data in schema]
     for i in range(num_tables):
         for j in range(num_columns):
