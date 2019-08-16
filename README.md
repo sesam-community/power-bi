@@ -1,9 +1,9 @@
 # Power-BI-Connector
 
-## This is a repo for connecting to the Power BI REST API and posting data for later visualization
+## This is a repo for connecting to the Power BI restAPI to Sesam and posting data for later visualization
 
-## To install requirements run the following :
-
+## Needed prerequisites to run the microservice :
+ * ergn 
 ```
 yarn install
 ```
