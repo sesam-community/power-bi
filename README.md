@@ -83,3 +83,30 @@ In addition you need to specify the workspace ID in Power BI to which you wish t
   "checkpoint_interval": 10000
 }
 ```
+## Run program locally
+To run main.py locally with some test data you need the following environment variables defined:
+ * PBI-CLIENT-ID
+ * TENANT-ID
+ * PBI-REFRESH-TOKEN
+ * WORKSPACE-ID
+ The workspace id can be found in the url when inside your Power BI account.
+
+The following adjustments need to be made in main_func in main.py:
+
+Global variables:
+ * Sesam_headers: comment out
+
+Inside main_func:
+ * Comment out entities
+ * Specify entities manually as a list of dictionaries with self-specified key-value pairs
+ * Comment out args
+ * Specify a new args object by: args = {"is_first": True, "request_id": 1}
+ * Comment out everything from the first response = requests.get.... call down to after the schema definition.
+ * Specify schema manually. The schema should be a list of dictionaries where every dictionary has a property 'name' corresponding to the different properties in the entities. The dictionaries also need the property 'type' to specify what sort of data type the property contains. For test-environments, the easiest is just to put this to 'String'.
+These are simple examples of test entities and the test schema:
+```entities = [{"_id": 1, "name": "Erik", "age": 20},{"_id": 1, "name": "Ashkan", "age": 20},{"_id": 1, "name": "Jonas", "age": 20}]```
+```schema = [{"name": "name", "type": "String"}, {"name": "age", "type": "String"}]``` 
+
+Now run the program and type 0.0.0.0:5000/some_node_id/test_dataset.
+The path 'some_data_hub' can be anything, since we do not connect to Sesam any more.
+The path 'dest_dataset' is the name of the PowerBI dataset. This can be set to anything.
