@@ -1,3 +1,5 @@
+[![Build Status](https://travis-ci.org/sesam-community/power-bi.svg?branch=master)](https://travis-ci.org/sesam-community/power-bi)
+
 # Power-BI-Connector
 
 This is a microservice for connecting to the Power BI restAPI to Sesam and posting data for later visualization.
@@ -47,7 +49,7 @@ The refresh token will be printed to terminal
       "TENANT-ID": "$SECRET(my-tenant-id)",
       "WORKSPACE-ID": "07852248-6e81-49b3-b0ac-8c9e9d8c881f"
     },
-    "image": "erikalev/power-bi:latest",
+    "image": "sesamcommunity/power-bi:latest",
     "port": 5000
   },
   "verify_ssl": true
