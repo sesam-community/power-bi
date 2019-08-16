@@ -1,4 +1,6 @@
 from flask import Flask, request, jsonify
+import logging
+import requests
 import json
 from authentification.create_jwt import get_token
 from processing.powerBi import *
@@ -58,8 +60,12 @@ def main_func(node_id, pipe_name):
 
     # Posting the entities
     response        = get_powerbi(workspace_id, '/' + dataset_id)
-    return jsonify(response.json())
-
+    try: 
+        args['is_last']
+        app.logger.info("Success in sending data from Sesam into Power BI.")
+    except KeyError:
+        app.logger.info("Sending batch %i." % int(args['request_id']))
+    return jsonify(response.status_code)
 
 @app.route('/delete_powerbi_rows', methods=['DELETE'])
 def delete_powerbi_rows(dataset_id, pipe_name):
@@ -79,7 +85,14 @@ def get_powerbi(workspace_id, dataset_id = str()):
     return response
 
 if __name__ == '__main__':
+    logger = logging.getLogger('powerbi-microservice')
+    format_string = '%(asctime)s - %(name)s - %(levelname)s - %(message)s'
+    # Log to stdout
+    stdout_handler = logging.StreamHandler()
+    stdout_handler.setFormatter(logging.Formatter(format_string))
+    logger.addHandler(stdout_handler)
 
+    logger.setLevel(logging.DEBUG)
     # This is used when running locally. Gunicorn is used to run the
     # application on Google App Engine. See entrypoint in app.yaml.
     app.run(host='0.0.0.0', port=5000, debug=True, threaded=True)
