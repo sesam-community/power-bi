@@ -31,7 +31,7 @@ def find_dataset_id(response, pipe_name):
 
 
 
-def add_columns(new_dict,, schema):
+def add_columns(new_dict, schema):
 
     num_tables = len(new_dict['tables'])
     num_columns = len(schema)
