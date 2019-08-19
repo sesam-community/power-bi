@@ -75,7 +75,7 @@ In addition you need to specify the workspace ID in Power BI to which you wish t
   "sink": {
     "type": "json",
     "system": "power-bi-ms",
-    "url": "/get_sesam/datahub-0b08b50b/person-powerbi-endpoint"
+    "url": "/get_sesam/datahub-0b08b50b/person-powerbi-endpoint?is_full=true"
   },
   "pump": {
     "cron_expression": "0 0 * * ?",
