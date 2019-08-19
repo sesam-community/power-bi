@@ -39,11 +39,6 @@ Powerbi_headers = {'Authorization': "Bearer {}".format(token['accessToken'])}
 powerbi_url     = "https://api.powerbi.com/v1.0/myorg/groups/%s/datasets" % get_env('WORKSPACE-ID')
 workspace_id    = get_env("WORKSPACE-ID")
 
-print(get_env('PBI-CLIENT-ID'))
-print(get_env('TENANT-ID'))
-print(get_env('PBI-REFRESH-TOKEN'))
-#print(get_env(''))
-ss
 @app.route('/get_sesam/<node_id>/<pipe_name>', methods=['POST'])
 def main_func(node_id, pipe_name):
     entities = request.get_json()
@@ -82,7 +77,7 @@ def main_func(node_id, pipe_name):
         args['is_first']
         if create_new_dataset:
             create_powerbi_dataset(populated_dataset, pipe_name)
-            current_datasets                        = get_powerbi()
+            current_datasets               = get_powerbi()
             create_new_dataset, dataset_id = check_dataset_status(current_datasets, pipe_name)
         else:
             logger.info("The MS does not support a different amount of properties between the new dataset and the old one. If so, then delete the old dataset in Power BI.")
