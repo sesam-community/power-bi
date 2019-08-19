@@ -39,6 +39,11 @@ Powerbi_headers = {'Authorization': "Bearer {}".format(token['accessToken'])}
 powerbi_url     = "https://api.powerbi.com/v1.0/myorg/groups/%s/datasets" % get_env('WORKSPACE-ID')
 workspace_id    = get_env("WORKSPACE-ID")
 
+print(get_env('PBI-CLIENT-ID'))
+print(get_env('TENANT-ID'))
+print(get_env('PBI-REFRESH-TOKEN'))
+#print(get_env(''))
+ss
 @app.route('/get_sesam/<node_id>/<pipe_name>', methods=['POST'])
 def main_func(node_id, pipe_name):
     entities = request.get_json()
@@ -70,14 +75,14 @@ def main_func(node_id, pipe_name):
         logger.error("The number of properties (%i) exceeds the Power BI max columns limitation of 75" %len(keys))
     
     # If the dataset from Sesam already exists in Power BI, the Power BI dataset gets updated
-    current_datasets               = get_powerbi(workspace_id)
+    current_datasets               = get_powerbi()
     create_new_dataset, dataset_id = check_dataset_status(current_datasets, pipe_name)
 
     try:
         args['is_first']
         if create_new_dataset:
             create_powerbi_dataset(populated_dataset, pipe_name)
-            current_datasets                        = get_powerbi(workspace_id)
+            current_datasets                        = get_powerbi()
             create_new_dataset, dataset_id = check_dataset_status(current_datasets, pipe_name)
         else:
             logger.info("The MS does not support a different amount of properties between the new dataset and the old one. If so, then delete the old dataset in Power BI.")
@@ -89,7 +94,7 @@ def main_func(node_id, pipe_name):
         post_powerbi_rows(dataset_id, pipe_name, rows)
 
     # Posting the entities
-    response        = get_powerbi(workspace_id, '/' + dataset_id)
+    response        = get_powerbi('/' + dataset_id)
     try: 
         args['is_last']
         return("Success in sending data from Sesam into Power BI.")
@@ -122,7 +127,7 @@ def create_powerbi_dataset(data, pipe_name):
         logger.warning("Failed to create dataset into dataset %s, table %s in workspace %s in Power BI" %(pipe_name, pipe_name, workspace_id))
 
 @app.route('/get_powerbi', methods=['GET'])
-def get_powerbi(workspace_id, dataset_id = str()):
+def get_powerbi(dataset_id = str()):
     response    = requests.get(powerbi_url + dataset_id, headers=Powerbi_headers)
     if response.status_code == 200:
         logger.debug("Sent get request to workspace %s, dataset id %s in Power BI" %(workspace_id, dataset_id))
