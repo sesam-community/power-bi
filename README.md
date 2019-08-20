@@ -77,6 +77,17 @@ In addition you need to specify the workspace ID in Power BI to which you wish t
     "system": "power-bi-ms",
     "url": "/get_sesam/datahub-0b08b50b/person-powerbi-endpoint?is_full=true"
   },
+  "transform": {
+    "type": "dtl",
+    "rules": {
+      "default": [
+        ["copy", "*"],
+        ["filter",
+          ["eq", "_S._deleted", false]
+        ]
+      ]
+    }
+  },
   "pump": {
     "cron_expression": "0 0 * * ?",
     "rescan_run_count": 1
@@ -85,6 +96,9 @@ In addition you need to specify the workspace ID in Power BI to which you wish t
   "checkpoint_interval": 10000
 }
 ```
+Make sure that the query string is_full=true is included, otherwise all of the selected entities will not be posted into Power BI, but only the ones updated within Sesam. 
+The filter in the transform-function guarantees deleted entities in Sesam are not included in the post to Power BI.
+
 ## Run program locally
 To run main.py locally with some test data you need the following environment variables defined:
  * PBI-CLIENT-ID
@@ -109,6 +123,6 @@ These are simple examples of test entities and the test schema:
 ```entities = [{"_id": 1, "name": "Erik", "age": 20},{"_id": 1, "name": "Ashkan", "age": 20},{"_id": 1, "name": "Jonas", "age": 20}]```
 ```schema = [{"name": "name", "type": "String"}, {"name": "age", "type": "String"}]``` 
 
-Now run the program and type 0.0.0.0:5000/some_node_id/test_dataset.
+Now run the program and type 0.0.0.0:5000/some_node_id/test_dataset%is_full=true.
 The path 'some_data_hub' can be anything, since we do not connect to Sesam any more.
 The path 'dest_dataset' is the name of the PowerBI dataset. This can be set to anything.
