@@ -6,7 +6,7 @@ This is a microservice for connecting to the Power BI restAPI to Sesam and posti
 You need an Azure account to run this service.
 
 ## Limitations
-The limitations for uploading data are:
+The Power BI API limitations for uploading data are:
  * 75 max columns
  * 1 max tables
  * 10.000 max batch_size
@@ -16,6 +16,8 @@ The limitations for uploading data are:
  * If table has 250.000 or more entities, 120 POST entities requests per hour per dataset
  * 5.000.000 max entitiesa stored per table
  * 4.000 characters per value for string column in POST entities operation## Example of Sesam sink config
+
+Practically speaking when posting data from sesam, this means we are limited to datasets of 1.000.000 rows/entities, as we need to adopt a truncate-load pattern, and generally cannot wait 1 hour per 1.000.000 "batch".
 
 ## Register a web application with the Azure Active Directory admin center
 
