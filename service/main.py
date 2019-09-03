@@ -9,6 +9,7 @@ import os
 
 logger = logging.getLogger('powerbi-microservice')
 format_string = '%(asctime)s - %(lineno)d - %(levelname)s - %(message)s'
+
 # Log to stdout
 stdout_handler = logging.StreamHandler()
 stdout_handler.setFormatter(logging.Formatter(format_string))
@@ -23,30 +24,32 @@ def get_env(var):
         envvar = os.environ[var.upper()]
     return envvar
 
-def check_dataset_status(current_datasets, pipe_name):
+def check_dataset_status(current_datasets, dataset_name):
     create_new_dataset = dataset_id = True
     for dataset_ in current_datasets.json()['value']:
-        if dataset_['name'] == pipe_name:
+        if dataset_['name'] == dataset_name:
             create_new_dataset = False
             dataset_id = dataset_['id']
 
     return create_new_dataset, dataset_id
-
 
 Sesam_headers   = {'Authorization': "Bearer {}".format(get_env('SESAM-JWT'))}
 token           = get_token(get_env('PBI-CLIENT-ID'), get_env('TENANT-ID'), get_env('PBI-REFRESH-TOKEN'))
 Powerbi_headers = {'Authorization': "Bearer {}".format(token['accessToken'])}
 powerbi_url     = "https://api.powerbi.com/v1.0/myorg/groups/%s/datasets" % get_env('WORKSPACE-ID')
 workspace_id    = get_env("WORKSPACE-ID")
+node_id         = get_env("SESAM-NODE-ID")
 
-@app.route('/get_sesam/<node_id>/<pipe_name>', methods=['POST'])
-def main_func(node_id, pipe_name):
+
+@app.route('/<pipe_name>/<dataset_name>/<table_name>', methods=['POST'])
+def main_func(pipe_name, dataset_name, table_name):
     entities = request.get_json()
 
     if max_entities_exceeded(entities):
         logger.error("The number of entites (%i) exceeds the Power BI max rows per post limitation. Set the Sesam batch_size to max 10000" %len(entities)) 
 
     args     = request.args
+
     response = requests.get("https://%s.sesam.cloud/api/pipes/%s/generate-schema-definition" %(node_id, pipe_name), headers = Sesam_headers)
     if response.status_code == 200:
         logger.debug("Sent get request for schema to node id %s, pipe %s in Sesam" %(node_id, pipe_name))
@@ -54,7 +57,6 @@ def main_func(node_id, pipe_name):
         logger.warning("Failed to send get request for schema to node id %s, pipe %s in Sesam" %(node_id, pipe_name))
 
     schema   = response.json()
-
     try: 
         schema[0]
     except KeyError:
@@ -62,31 +64,54 @@ def main_func(node_id, pipe_name):
     except IndexError:
         logger.warning("Failed to generate correct schema from Sesam")
 
-    dataset                 = setup_dataset(pipe_name)
+
+
+    dataset                 = setup_dataset(dataset_name, table_name)
     populated_dataset, keys = add_columns(dataset, schema)
     rows                    = add_rows(entities, populated_dataset, keys)
-
     if max_properties_exceeded(keys):
         logger.error("The number of properties (%i) exceeds the Power BI max columns limitation of 75" %len(keys))
-    
+
+            
     # If the dataset from Sesam already exists in Power BI, the Power BI dataset gets updated
     current_datasets               = get_powerbi()
-    create_new_dataset, dataset_id = check_dataset_status(current_datasets, pipe_name)
-
+    create_new_dataset, dataset_id = check_dataset_status(current_datasets, dataset_name)
+    logger.info("%s, %s"%(str(create_new_dataset), str(dataset_id)))
+    logger.info("%s" %str(args))
+    logger.info(args['is_first'])
     try:
         args['is_first']
+        logger.info(1)
         if create_new_dataset:
-            create_powerbi_dataset(populated_dataset, pipe_name)
+            logger.info(2)
+            create_powerbi_dataset(populated_dataset, dataset_name, table_name)
             current_datasets               = get_powerbi()
-            create_new_dataset, dataset_id = check_dataset_status(current_datasets, pipe_name)
+            create_new_dataset, dataset_id = check_dataset_status(current_datasets, dataset_name)
+            logger.info("wtf1")
+            post_powerbi_rows(dataset_id, dataset_name, table_name, rows)
         else:
+            del populated_dataset['tables'][0]['name']
+            populated_dataset['tables'][0]['tableName'] = "new_table"
+            logger.info(populated_dataset['tables'][0])
+            #table_name = 'new_table'
+            logger.info("%s, %s, %s" %(str(dataset_id), str(dataset_name), str(table_name)))
+            update_powerbi_columns(dataset_id, dataset_name, table_name, populated_dataset['tables'][0])
+            logger.info(6)
+            logger.info(populated_dataset['tables'][0])
+            logger.info(7)
             logger.info("The MS does not support a different amount of properties between the new dataset and the old one. If so, then delete the old dataset in Power BI.")
-            delete_powerbi_rows(dataset_id, pipe_name)
-
-        post_powerbi_rows(dataset_id, pipe_name, rows)
+            logger.info(8)
+            delete_powerbi_rows(dataset_id, dataset_name, "new_table")
+            logger.info(9)
+            logger.info(rows)
+            logger.info(10)
+            post_powerbi_rows(dataset_id, dataset_name, "new_table", rows)
 
     except KeyError:
-        post_powerbi_rows(dataset_id, pipe_name, rows)
+        logger.info(11)
+
+        post_powerbi_rows(dataset_id, dataset_name, table_name, rows)
+        logger.info("wtf")
 
     # Posting the entities
     response        = get_powerbi('/' + dataset_id)
@@ -96,30 +121,45 @@ def main_func(node_id, pipe_name):
     except KeyError:
         return ("Sending batch %i." % int(args['request_id']))
 
-@app.route('/delete_powerbi_rows', methods=['DELETE'])
-def delete_powerbi_rows(dataset_id, pipe_name):
-    response = requests.delete(powerbi_url + "/%s/tables/%s/rows" % (dataset_id, pipe_name), headers=Powerbi_headers)
+
+@app.route('/update_powerbi_columns', methods=['PUT'])
+def update_powerbi_columns(dataset_id, dataset_name, table_name, data):
+    response = requests.put(powerbi_url + "/%s/tables/%s" % (dataset_id, table_name), headers=Powerbi_headers, json=data)
     if response.status_code == 200:
-        logger.debug("Deleted the excisting rows in workspace %s, dataset %s, table %s in Power BI" %(workspace_id, pipe_name, pipe_name))
+        logger.debug("Updated the excisting columns in workspace %s, dataset %s, table %s in Power BI" %(workspace_id, dataset_name, table_name))
     else:
-        logger.warning("Failed to deleted the excisting rows in workspace %s, dataset %s, table %s in Power BI" %(workspace_id, pipe_name, pipe_name))
+        logger.warning("Failed to update the excisting columns in workspace %s, dataset %s, table %s in Power BI" %(workspace_id, dataset_name, table_name))
+        logger.warning("Url = %s/%s/tables/%s" % (powerbi_url, dataset_id, table_name))
+        logger.warning("response = %s" % str(response.status_code))
+
+@app.route('/delete_powerbi_rows', methods=['DELETE'])
+def delete_powerbi_rows(dataset_id, dataset_name, table_name):
+    response = requests.delete(powerbi_url + "/%s/tables/%s/rows" % (dataset_id, table_name), headers=Powerbi_headers)
+    if response.status_code == 200:
+        logger.debug("Deleted the excisting rows in workspace %s, dataset %s, table %s in Power BI" %(workspace_id, dataset_name, table_name))
+    else:
+        logger.warning("Failed to deleted the excisting rows in workspace %s, dataset %s, table %s in Power BI" %(workspace_id, dataset_name, table_name))
+
 
 @app.route('/post_powerbi_rows', methods=['POST'])
-def post_powerbi_rows(dataset_id, pipe_name, data):
-    response = requests.post(powerbi_url + "/%s/tables/%s/rows" % (dataset_id, pipe_name), headers=Powerbi_headers, json=data)
+def post_powerbi_rows(dataset_id, dataset_name, table_name, data):
+    #table_name = "new_table"
+    response = requests.post(powerbi_url + "/%s/tables/%s/rows" % (dataset_id, table_name), headers=Powerbi_headers, json=data)
     if response.status_code == 200:
-        logger.debug("Posted rows into workspace %s, dataset %s, table %s in Power BI" %(workspace_id, pipe_name, pipe_name))
+        logger.debug("Posted rows into workspace %s, dataset %s, table %s in Power BI" %(workspace_id, dataset_name, table_name))
     else:
-        logger.warning("Failed to post rows into workspace %s, dataset %s, table %s in Power BI" %(workspace_id, pipe_name, pipe_name))
+        logger.warning("Failed to post rows into workspace %s, dataset %s, table %s in Power BI" %(workspace_id, dataset_name, table_name))
+        logger.warning("Url = %s/%s/tables/%s" % (powerbi_url, dataset_id, table_name))
+        logger.warning("response = %s" % str(response.status_code))
 
 @app.route('/create_powerbi_dataset', methods=['PUT'])
-def create_powerbi_dataset(data, pipe_name):
+def create_powerbi_dataset(data, dataset_name, table_name):
     response = requests.post(powerbi_url,  headers=Powerbi_headers, json=data)
 
     if response.status_code == 201:
-        logger.debug("Created dataset %s, table %s in workspace %s in Power BI" %(pipe_name, pipe_name, workspace_id))
+        logger.debug("Created dataset %s, table %s in workspace %s in Power BI" %(dataset_name, table_name, workspace_id))
     else:
-        logger.warning("Failed to create dataset into dataset %s, table %s in workspace %s in Power BI" %(pipe_name, pipe_name, workspace_id))
+        logger.warning("Failed to create dataset into dataset %s, table %s in workspace %s in Power BI" %(dataset_name, table_name, workspace_id))
 
 @app.route('/get_powerbi', methods=['GET'])
 def get_powerbi(dataset_id = str()):

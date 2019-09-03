@@ -6,18 +6,16 @@ default_decimal  = '0.0'
 default_int      = '0'
 default_string   = 'none'
 
-def setup_dataset(pipe_name):
+def setup_dataset(dataset_name, table_name):
 
-    tables = [pipe_name]
     new_dataset                = {}
-    new_dataset['name']        = pipe_name
+    new_dataset['name']        = dataset_name
     new_dataset["defaultMode"] = "Push"
     new_dataset['tables']      = []
 
-    for i, table in enumerate(tables):
-        new_dataset['tables'].append({})
-        new_dataset['tables'][i]['name']    = table 
-        new_dataset['tables'][i]['columns'] = []
+    new_dataset['tables'].append({})
+    new_dataset['tables'][0]['name']    = table_name 
+    new_dataset['tables'][0]['columns'] = []
 
     return new_dataset
 
@@ -62,22 +60,19 @@ def add_rows(entities, populated_dataset, keys):
     rows         = {}
     rows["rows"] = []
     num_rows     = len(entities)
-    num_tables   = len(populated_dataset['tables'])
 
-    for i in range(num_tables):
-        for j, entity in enumerate(entities):
-            rows["rows"].append({})
-            for k, key in enumerate(keys):
-                dataType = populated_dataset['tables'][i]['columns'][k]['dataType']
-                try:
-                    value = format_value(entity[key], dataType)
-                except KeyError:
-                    value = format_value("", dataType)
-                rows['rows'][j][key] = value
+    for j, entity in enumerate(entities):
+        rows["rows"].append({})
+        for k, key in enumerate(keys):
+            dataType = populated_dataset['tables'][0]['columns'][k]['dataType']
+            try:
+                value = format_value(entity[key], dataType)
+            except KeyError:
+                value = format_value("", dataType)
+            rows['rows'][j][key] = value
     return rows
 
 def format_value(value, dataType):
-
     if dataType == 'Boolean':
         value = str(value).capitalize()
         if value != 'False' and value != 'True':
