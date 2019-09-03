@@ -76,42 +76,20 @@ def main_func(pipe_name, dataset_name, table_name):
     # If the dataset from Sesam already exists in Power BI, the Power BI dataset gets updated
     current_datasets               = get_powerbi()
     create_new_dataset, dataset_id = check_dataset_status(current_datasets, dataset_name)
-    logger.info("%s, %s"%(str(create_new_dataset), str(dataset_id)))
-    logger.info("%s" %str(args))
-    logger.info(args['is_first'])
     try:
         args['is_first']
-        logger.info(1)
         if create_new_dataset:
-            logger.info(2)
             create_powerbi_dataset(populated_dataset, dataset_name, table_name)
             current_datasets               = get_powerbi()
             create_new_dataset, dataset_id = check_dataset_status(current_datasets, dataset_name)
-            logger.info("wtf1")
             post_powerbi_rows(dataset_id, dataset_name, table_name, rows)
         else:
-            del populated_dataset['tables'][0]['name']
-            populated_dataset['tables'][0]['tableName'] = "new_table"
-            logger.info(populated_dataset['tables'][0])
-            #table_name = 'new_table'
-            logger.info("%s, %s, %s" %(str(dataset_id), str(dataset_name), str(table_name)))
             update_powerbi_columns(dataset_id, dataset_name, table_name, populated_dataset['tables'][0])
-            logger.info(6)
-            logger.info(populated_dataset['tables'][0])
-            logger.info(7)
-            logger.info("The MS does not support a different amount of properties between the new dataset and the old one. If so, then delete the old dataset in Power BI.")
-            logger.info(8)
-            delete_powerbi_rows(dataset_id, dataset_name, "new_table")
-            logger.info(9)
-            logger.info(rows)
-            logger.info(10)
-            post_powerbi_rows(dataset_id, dataset_name, "new_table", rows)
+            delete_powerbi_rows(dataset_id, dataset_name, table_name)
+            post_powerbi_rows(dataset_id, dataset_name, table_name, rows)
 
     except KeyError:
-        logger.info(11)
-
         post_powerbi_rows(dataset_id, dataset_name, table_name, rows)
-        logger.info("wtf")
 
     # Posting the entities
     response        = get_powerbi('/' + dataset_id)
@@ -139,6 +117,8 @@ def delete_powerbi_rows(dataset_id, dataset_name, table_name):
         logger.debug("Deleted the excisting rows in workspace %s, dataset %s, table %s in Power BI" %(workspace_id, dataset_name, table_name))
     else:
         logger.warning("Failed to deleted the excisting rows in workspace %s, dataset %s, table %s in Power BI" %(workspace_id, dataset_name, table_name))
+        logger.warning("Url = %s/%s/tables/%s" % (powerbi_url, dataset_id, table_name))
+        logger.warning("response = %s" % str(response.status_code))
 
 
 @app.route('/post_powerbi_rows', methods=['POST'])
@@ -160,6 +140,8 @@ def create_powerbi_dataset(data, dataset_name, table_name):
         logger.debug("Created dataset %s, table %s in workspace %s in Power BI" %(dataset_name, table_name, workspace_id))
     else:
         logger.warning("Failed to create dataset into dataset %s, table %s in workspace %s in Power BI" %(dataset_name, table_name, workspace_id))
+        logger.warning("Url = %s" % powerbi_url)
+        logger.warning("response = %s" % str(response.status_code))
 
 @app.route('/get_powerbi', methods=['GET'])
 def get_powerbi(dataset_id = str()):
@@ -168,6 +150,8 @@ def get_powerbi(dataset_id = str()):
         logger.debug("Sent get request to workspace %s, dataset id %s in Power BI" %(workspace_id, dataset_id))
     else:
         logger.warning("Failed to send get request to workspace %s, dataset id %s in Power BI" %(workspace_id, dataset_id))
+        logger.warning("Url = %s/%s" % (powerbi_url, dataset_id))
+        logger.warning("response = %s" % str(response.status_code))
     return response
 
 if __name__ == '__main__':
