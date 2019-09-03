@@ -1,5 +1,8 @@
 /authentification/auth_helpers.py
 /authentification/auth_helpers.pyc
+/authentification/config_file.txt
+/service/main_test.py
+
 *.pyc*
 
 yarn.lock
