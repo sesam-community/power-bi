@@ -78,10 +78,8 @@ In addition you need to specify the workspace ID in Power BI to which you wish t
     "type": "dtl",
     "rules": {
       "default": [
-        ["filter",
-          ["eq", "_S._deleted", false]
-        ],
-        ["copy", "*"]
+        ["copy", "*"],
+        ["remove", "Gender"]
       ]
     }
   },
@@ -105,6 +103,17 @@ In addition you need to specify the workspace ID in Power BI to which you wish t
     "system": "power-bi-ms",
     "url": "/person-powerbi/person-powerbi-endpoint/my_table"
   },
+  "transform": {
+    "type": "dtl",
+    "rules": {
+      "default": [
+        ["filter",
+          ["eq", "_S._deleted", false]
+        ],
+        ["copy", "*"]
+      ]
+    }
+  },
   "pump": {
     "cron_expression": "0 0 * * ?",
     "rescan_run_count": 1
@@ -112,6 +121,7 @@ In addition you need to specify the workspace ID in Power BI to which you wish t
   "batch_size": 100,
   "checkpoint_interval": 100
 }
+
 
 ```
 Make sure that the query string is_full=true is included, otherwise all of the selected entities will not be posted into Power BI, but only the ones updated within Sesam. 
