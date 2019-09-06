@@ -1,28 +1,36 @@
 from flask import Flask, request, jsonify
 import logging
 import requests
+import adal
 import json
 from authentification.create_jwt import get_token
 from error_methods import *
 from processing.powerBi import *
 import os
-
-logger = logging.getLogger('powerbi-microservice')
-format_string = '%(asctime)s - %(lineno)d - %(levelname)s - %(message)s'
-
-# Log to stdout
-stdout_handler = logging.StreamHandler()
-stdout_handler.setFormatter(logging.Formatter(format_string))
-logger.addHandler(stdout_handler)
-logger.setLevel(logging.INFO)
-
-app           = Flask(__name__)
+import time
+from datetime import datetime
 
 def get_env(var):
     envvar = None
     if var.upper() in os.environ:
         envvar = os.environ[var.upper()]
     return envvar
+
+logger = logging.getLogger('powerbi-microservice')
+format_string = '%(asctime)s - %(lineno)d - %(levelname)s - %(message)s'
+stdout_handler = logging.StreamHandler()
+stdout_handler.setFormatter(logging.Formatter(format_string))
+logger.addHandler(stdout_handler)
+logger.setLevel(logging.INFO)
+
+
+tenant_id       = get_env('TENANT-ID')
+client_id       = get_env('PBI-CLIENT-ID')
+refresh_token   = get_env('PBI-REFRESH-TOKEN')
+workspace_id    = get_env("WORKSPACE-ID")
+node_id         = get_env("SESAM-NODE-ID")
+Sesam_headers   = {'Authorization': "Bearer {}".format(get_env('SESAM-JWT'))}
+powerbi_url     = "https://api.powerbi.com/v1.0/myorg/groups/%s/datasets" % get_env('WORKSPACE-ID')
 
 def check_dataset_status(current_datasets, dataset_name):
     create_new_dataset = dataset_id = True
@@ -33,16 +41,39 @@ def check_dataset_status(current_datasets, dataset_name):
 
     return create_new_dataset, dataset_id
 
-Sesam_headers   = {'Authorization': "Bearer {}".format(get_env('SESAM-JWT'))}
-token           = get_token(get_env('PBI-CLIENT-ID'), get_env('TENANT-ID'), get_env('PBI-REFRESH-TOKEN'))
-Powerbi_headers = {'Authorization': "Bearer {}".format(token['accessToken'])}
-powerbi_url     = "https://api.powerbi.com/v1.0/myorg/groups/%s/datasets" % get_env('WORKSPACE-ID')
-workspace_id    = get_env("WORKSPACE-ID")
-node_id         = get_env("SESAM-NODE-ID")
+def get_refresh_token():
+    resource = 'https://analysis.windows.net/powerbi/api'
+    auth_endpoint = 'https://login.microsoftonline.com'
+    context = adal.AuthenticationContext('/'.join([auth_endpoint, tenant_id]))
+    user_code_info = context.acquire_user_code(resource, client_id);
+    logger.info(user_code_info.get('message'))
+    res = context.acquire_token_with_device_code(resource, user_code_info, client_id)
+    logger.info("This is your refresh token: %s" % res.get('refreshToken'))
 
+def token_has_expired(token):
+    if datetime.now() > datetime.strptime(token['expiresOn'], "%Y-%m-%d %H:%M:%S.%f"):
+        return True
+    else:
+        return False
+
+if refresh_token  == None: 
+    get_refresh_token()
+    time.sleep(6000)
+    logger.info('Insert your refresh token into the Sesam system as instructed in the README and click "Save"')
+else:
+    token           = get_token(get_env('PBI-CLIENT-ID'), get_env('TENANT-ID'), get_env('PBI-REFRESH-TOKEN'))
+    Powerbi_headers = {'Authorization': "Bearer {}".format(token['accessToken'])}
+
+
+app             = Flask(__name__)
 
 @app.route('/<pipe_name>/<dataset_name>/<table_name>', methods=['POST'])
 def main_func(pipe_name, dataset_name, table_name):
+    global token, Powerbi_headers
+    if token_has_expired(token):
+        token           = get_token(get_env('PBI-CLIENT-ID'), get_env('TENANT-ID'), get_env('PBI-REFRESH-TOKEN'))
+        Powerbi_headers = {'Authorization': "Bearer {}".format(token['accessToken'])}
+
     entities = request.get_json()
 
     if max_entities_exceeded(entities):
@@ -50,24 +81,23 @@ def main_func(pipe_name, dataset_name, table_name):
 
     args     = request.args
 
-    response = requests.get("https://%s.sesam.cloud/api/pipes/%s/generate-schema-definition" %(node_id, pipe_name), headers = Sesam_headers)
-    if response.status_code == 200:
-        logger.debug("Sent get request for schema to node id %s, pipe %s in Sesam" %(node_id, pipe_name))
-    else:
-        logger.warning("Failed to send get request for schema to node id %s, pipe %s in Sesam" %(node_id, pipe_name))
+    try:
+        args['is_first']
+        new_schema = get_new_schema(node_id, pipe_name)
+        try: 
+            new_schema[0]
+        except KeyError:
+            logger.warning("Failed to generate correct new schema from Sesam")
+        except IndexError:
+            logger.warning("Failed to generate correct new schema from Sesam")
+        os.environ['SESAM-NEW-SCHEMA'] = json.dumps(new_schema)
 
-    schema   = response.json()
-    try: 
-        schema[0]
+
     except KeyError:
-        logger.warning("Failed to generate correct schema from Sesam")
-    except IndexError:
-        logger.warning("Failed to generate correct schema from Sesam")
-
-
+        new_schema = json.loads(get_env('SESAM-NEW-SCHEMA'))
 
     dataset                 = setup_dataset(dataset_name, table_name)
-    populated_dataset, keys = add_columns(dataset, schema)
+    populated_dataset, keys = add_columns(dataset, new_schema)
     rows                    = add_rows(entities, populated_dataset, keys)
     if max_properties_exceeded(keys):
         logger.error("The number of properties (%i) exceeds the Power BI max columns limitation of 75" %len(keys))
@@ -98,6 +128,29 @@ def main_func(pipe_name, dataset_name, table_name):
         return("Success in sending data from Sesam into Power BI.")
     except KeyError:
         return ("Sending batch %i." % int(args['request_id']))
+
+
+@app.route('/get_new_schema', methods=['GET'])
+def get_new_schema(node_id, pipe_name):
+    response = requests.get("https://%s.sesam.cloud/api/pipes/%s/generate-schema-definition" %(node_id, pipe_name), headers = Sesam_headers)
+    if response.status_code == 200:
+        logger.debug("Sent get request for schema to node id %s, pipe %s in Sesam" %(node_id, pipe_name))
+        return (response.json())
+    else:
+        logger.warning("Failed to send get schema from node id %s, pipe %s in Sesam" %(node_id, pipe_name))
+        logger.warning("Url = https://%s.sesam.cloud/api/pipes/%s/generate-schema-definition" %(node_id, pipe_name))
+        logger.warning("response = %s" % str(response.status_code))
+
+@app.route('/get_old_schema', methods=['GET'])
+def get_old_schema(node_id, pipe_name, dataset_id):
+    response = requests.get("https://%s.sesam.cloud/api/pipes/%s/generate-schema-definition" %(node_id, pipe_name), headers = Sesam_headers)
+    if response.status_code == 200:
+        logger.debug("Sent get request for schema to node id %s, pipe %s in Sesam" %(node_id, pipe_name))
+        return (response.json())
+    else:
+        logger.warning("Failed to send get schema from node id %s, pipe %s in Sesam" %(node_id, pipe_name))
+        logger.warning("Url = https://%s.sesam.cloud/api/pipes/%s/generate-schema-definition" %(node_id, pipe_name))
+        logger.warning("response = %s" % str(response.status_code))
 
 
 @app.route('/update_powerbi_columns', methods=['PUT'])
