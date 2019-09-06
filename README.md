@@ -45,17 +45,19 @@ The refresh token will be printed to terminal
   "type": "system:microservice",
   "docker": {
     "environment": {
-      "PBI-CLIENT-ID": "$SECRET(my-client-id)",
+      "PBI-CLIENT-ID": "my-client-id",
       "PBI-REFRESH-TOKEN": "$SECRET(my-refresh-token)",
       "SESAM-JWT": "$SECRET(my-jwt)",
-      "TENANT-ID": "$SECRET(my-tenant-id)",
-      "WORKSPACE-ID": "07852248-6e81-49b3-b0ac-8c9e9d8c881f"
+      "SESAM-NODE-ID": "my-sesam-node-id",
+      "TENANT-ID": "my-tenant-id",
+      "WORKSPACE-ID": "my-powerbi workspace-id"
     },
     "image": "sesamcommunity/power-bi:latest",
     "port": 5000
   },
   "verify_ssl": true
 }
+
 ```
 Add the secrets by entering the "Secrets" window in the Sesam system and select "add secret" with names as specified in the config. 
  * my-client-id: The client ID of your web application
@@ -65,6 +67,30 @@ Add the secrets by entering the "Secrets" window in the Sesam system and select 
 
 In addition you need to specify the workspace ID in Power BI to which you wish to post the data
 
+## Example of Sesam pipe 
+```
+{
+  "_id": "person-powerbi",
+  "type": "pipe",
+  "source": {
+    "type": "dataset",
+    "dataset": "crm-person"
+  },
+  "transform": {
+    "type": "dtl",
+    "rules": {
+      "default": [
+        ["copy", "*"],
+        ["remove", "Gender"]
+      ]
+    }
+  },
+  "remove_namespaces": true
+}
+
+```
+
+
 ## Example of Sesam sink config
 ```
 {
@@ -72,21 +98,21 @@ In addition you need to specify the workspace ID in Power BI to which you wish t
   "type": "pipe",
   "source": {
     "type": "dataset",
-    "dataset": "crm-person"
+    "dataset": "person-powerbi"
   },
   "sink": {
     "type": "json",
     "system": "power-bi-ms",
-    "url": "/get_sesam/datahub-0b08b50b/person-powerbi-endpoint?is_full=true"
+    "url": "/person-powerbi/person-powerbi-endpoint/my_table"
   },
   "transform": {
     "type": "dtl",
     "rules": {
       "default": [
-        ["copy", "*"],
         ["filter",
           ["eq", "_S._deleted", false]
-        ]
+        ],
+        ["copy", "*"]
       ]
     }
   },
@@ -94,9 +120,11 @@ In addition you need to specify the workspace ID in Power BI to which you wish t
     "cron_expression": "0 0 * * ?",
     "rescan_run_count": 1
   },
-  "batch_size": 10000,
-  "checkpoint_interval": 10000
+  "batch_size": 100,
+  "checkpoint_interval": 100
 }
+
+
 ```
 Make sure that the query string is_full=true is included, otherwise all of the selected entities will not be posted into Power BI, but only the ones updated within Sesam. 
 The filter in the transform-function guarantees deleted entities in Sesam are not included in the post to Power BI.

@@ -2,7 +2,7 @@
 
 import adal
 import click
-
+import os
 
 @click.command()
 @click.option('--auth_endpoint', default='https://login.microsoftonline.com', required=False)
@@ -14,8 +14,8 @@ def get_refresh_token(auth_endpoint, tenant_id, client_id, resource):
     user_code_info = context.acquire_user_code(resource, client_id);
     print(user_code_info.get('message'))
     res = context.acquire_token_with_device_code(resource, user_code_info, client_id)
-    print(res.get('refreshToken'))
-
-
+    refresh_token = res.get('refreshToken')
+    os.environ['PBI-REFRESH-TOKEN'] = refresh_token
+    print(os.environ['REFRESH-TOKEN'])
 if __name__ == '__main__':
     get_refresh_token()

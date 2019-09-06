@@ -1,6 +1,6 @@
 flask
 requests
-adal==1.2.2
+adal
 nose
 six
 click
