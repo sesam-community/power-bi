@@ -6,6 +6,15 @@ default_decimal  = '0.0'
 default_int      = '0'
 default_string   = 'none'
 
+def check_dataset_status(current_datasets, dataset_name):
+    create_new_dataset = dataset_id = True
+    for dataset_ in current_datasets.json()['value']:
+        if dataset_['name'] == dataset_name:
+            create_new_dataset = False
+            dataset_id = dataset_['id']
+
+    return create_new_dataset, dataset_id
+
 def setup_dataset(dataset_name, table_name):
 
     new_dataset                = {}
