@@ -201,7 +201,6 @@ def get_new_schema(node_id, pipe_name):
 
 @app.route('/update_schemas', methods=['POST'])
 def update_schemas(node_id, pipe_name, schemas, new_schema):
-    logger.info(schemas)
     if len(schemas) == 0:
         schemas.append(new_schema)
     else:
