@@ -3,13 +3,13 @@ import logging
 import requests
 import adal
 import json
-from authentification.create_jwt import get_token
+from authentication.auth import *
 from error_methods import *
 from processing.powerBi import *
 import os
 import time
-from datetime import datetime
 from config.make_config import *
+from processing.schema_functions import *
 
 def get_env(var):
     envvar = None
@@ -35,36 +35,6 @@ powerbi_url       = "https://api.powerbi.com/v1.0/myorg/groups/%s/datasets" % ge
 sesam_schema_pipe = "powerbi-schemas"
 
 
-def schema_with_id(schema, dataset_id):
-    remade_schema = {}
-    remade_schema["_id"] = str(dataset_id)
-    remade_schema['info'] = schema
-    return remade_schema
-
-def merge_schemas(old_schema, new_schema):
-    merged_schema = new_schema
-    for old_property in old_schema:
-        if old_property.get('name') not in [new_property.get('name') for new_property in new_schema]:    
-            merged_schema.append(old_property)
-    return merged_schema
-
-def find_old_schema(schemas, dataset_id):
-    if len(schemas) == 0:
-        return None
-    for schema in schemas:
-        if schema["_id"] == dataset_id:
-            return schema.get('info')
-    return None
-
-def check_dataset_status(current_datasets, dataset_name):
-    create_new_dataset = dataset_id = True
-    for dataset_ in current_datasets.json()['value']:
-        if dataset_['name'] == dataset_name:
-            create_new_dataset = False
-            dataset_id = dataset_['id']
-
-    return create_new_dataset, dataset_id
-
 def get_refresh_token():
     resource = 'https://analysis.windows.net/powerbi/api'
     auth_endpoint = 'https://login.microsoftonline.com'
@@ -73,12 +43,6 @@ def get_refresh_token():
     logger.info(user_code_info.get('message'))
     res = context.acquire_token_with_device_code(resource, user_code_info, client_id)
     logger.info("This is your refresh token: %s" % res.get('refreshToken'))
-
-def token_has_expired(token):
-    if datetime.now() > datetime.strptime(token['expiresOn'], "%Y-%m-%d %H:%M:%S.%f"):
-        return True
-    else:
-        return False
 
 if refresh_token  == None: 
     get_refresh_token()
@@ -109,9 +73,6 @@ def main_func(pipe_name, dataset_name, table_name):
     current_datasets               = get_powerbi()
     create_new_dataset, dataset_id = check_dataset_status(current_datasets, dataset_name)
     
-
-
-
     try:
         args['is_first']
         new_schema = get_new_schema(node_id, pipe_name)
