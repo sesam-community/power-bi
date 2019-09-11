@@ -4,7 +4,7 @@ import requests
 import adal
 import json
 from authentication.auth import *
-from error_methods import *
+from processing.error_methods import *
 from processing.powerBi import *
 import os
 import time
