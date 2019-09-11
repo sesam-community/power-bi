@@ -124,10 +124,33 @@ In addition you need to specify the workspace ID in Power BI to which you wish t
   "checkpoint_interval": 100
 }
 
+```
+The filter in the transform-function guarantees deleted entities in Sesam are not included in the post to Power BI.
+
+## Example of Sesam sink config
+```
+{
+  "_id": "powerbi-schemas",
+  "type": "pipe",
+  "source": {
+    "type": "http_endpoint"
+  },
+  "sink": {
+    "type": "dataset",
+    "dataset": "powerbi-schemas"
+  },
+  "transform": {
+    "type": "dtl",
+    "rules": {
+      "default": [
+        ["copy", "*"]
+      ]
+    }
+  },
+  "remove_namespaces": true
+}
 
 ```
-Make sure that the query string is_full=true is included, otherwise all of the selected entities will not be posted into Power BI, but only the ones updated within Sesam. 
-The filter in the transform-function guarantees deleted entities in Sesam are not included in the post to Power BI.
 
 ## Run program locally
 To run main.py locally with some test data you need the following environment variables defined:
