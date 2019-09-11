@@ -126,7 +126,6 @@ def main_func(pipe_name, dataset_name, table_name):
             logger.warning("Failed to generate correct new schema from Sesam")
 
         schemas = get_old_schemas(node_id, sesam_schema_pipe)
-        logger.info(schemas)
         old_schema = find_old_schema(schemas, dataset_id)
 
         if old_schema == None:
