@@ -66,6 +66,26 @@ Go back to the "Status" section of your system and press "Refresh" again. Your r
 ```
   "PBI-REFRESH-TOKEN": "$SECRET(my-refresh-token)",
 ```
+such that the config now reads 
+```
+{
+  "_id": "power-bi-ms",
+  "type": "system:microservice",
+  "docker": {
+    "environment": {
+      "PBI-CLIENT-ID": "31cb468e-3d61-4246-851f-e8162f8e0a44",
+      "PBI-REFRESH-TOKEN": "$SECRET(my-refresh-token)",
+      "SESAM-JWT": "$SECRET(my-jwt)",
+      "SESAM-NODE-ID": "datahub-0b08b50b",
+      "TENANT-ID": "7bcbcc45-fb12-41d3-8ace-fa0fffaebf1d",
+      "WORKSPACE-ID": "07852248-6e81-49b3-b0ac-8c9e9d8c881f"
+    },
+    "image": "sesamcommunity/power-bi:latest",
+    "port": 5000
+  },
+  "verify_ssl": true
+}
+```
 After saving your system should now run by it self (go back to the "Status" section and press "Refresh").
 
 NOTE: It might take a couple of seconds for the microservice to re-run. Just wait a couple of seconds and press "Refresh" again. 
