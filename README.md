@@ -69,7 +69,7 @@ Go back to the "Status" section of your system and press "Refresh" again. Your r
 such that the config now reads 
 ```
 {
-  "_id": "power-bi-ms",
+  "_id": "powerbi-ms",
   "type": "system:microservice",
   "docker": {
     "environment": {
@@ -149,6 +149,10 @@ In this pipe ("person-powerbi-endpoint") we send the data into Power BI through 
 }
 
 ```
+Note the url paths stated in sink: 
+ * The first part (in this case 'person-powerbi') refers to the pipe where the last transformations took place. In this test case no transformation occurred, but this does not have to be the case in your setup. Since the column-information the microservice sends in to Power BI originates from this pipe, it's important that no additional transformations occur in the endpoint pipe. 
+ * The second paty (in this case 'person-powerbi-endpoint') states the name of the dataset in Power BI. We have simply set it as the same as the endpoint name in Sesam, but this as well is optional. 
+ * The last part (in this case 'my_table') refers to the name of the Power BI table inside the dataset which name was set in the previous part. 
 
 The following pipe (powerbi-schemas) is needed to gather information about the last time you sent data through Sesam to Power BI. It's essential to conserve the integrity of your data inside Poewr BI. 
 ## Example of Sesam sink config
