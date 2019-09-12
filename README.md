@@ -154,7 +154,7 @@ Note the url paths stated in sink:
  * The second paty (in this case 'person-powerbi-endpoint') states the name of the dataset in Power BI. We have simply set it as the same as the endpoint name in Sesam, but this as well is optional. 
  * The last part (in this case 'my_table') refers to the name of the Power BI table inside the dataset which name was set in the previous part. 
 
-The following pipe (powerbi-schemas) is needed to gather information about the last time you sent data through Sesam to Power BI. It's essential to conserve the integrity of your data inside Poewr BI. 
+The following pipe (powerbi-schemas) is needed to gather information about the last time you sent data through Sesam to Power BI. It's essential to conserve the integrity of your data inside Power BI. 
 ## Example of Sesam sink config
 ```
 {
